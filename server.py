@@ -64,7 +64,7 @@ class KVServer:
         return reply
 
     def Append(self, args: PutAppendArgs):
-        reply = PutAppendReply(None)
+        # reply = PutAppendReply(None)
 
         # Your code here.
 
@@ -77,4 +77,4 @@ class KVServer:
             self.stored_values[args.key] = old_value + args.value
 
 
-        return reply
+        return PutAppendReply(old_value)
