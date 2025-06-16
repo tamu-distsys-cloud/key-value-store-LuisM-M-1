@@ -17,7 +17,7 @@ class PutAppendArgs:
         self.value = value
 
 class PutAppendReply:
-    # Add definitions here if needed
+    # Add definitions here if needed 
     def __init__(self, value):
         self.value = value
 
@@ -37,11 +37,14 @@ class KVServer:
         self.cfg = cfg
 
         # Your definitions here.
+        # could potentially use a dictionary for key and value pairs
 
     def Get(self, args: GetArgs):
         reply = GetReply(None)
 
         # Your code here.
+
+        
 
         return reply
 
