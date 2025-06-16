@@ -28,10 +28,14 @@ class Clerk:
     # arguments in server.py.
     def get(self, key: str) -> str:
         # You will have to modify this function.
-        for x in range(0, len(self.servers)):
-            reply = self.servers[x].call("KVServer.Get",key)
-            # need to add statements for if key exists or does not exist.
-        return reply
+        # for x in range(0, len(self.servers)):
+        #     reply = self.servers[x].call("KVServer.Get",key)
+        #     # need to add statements for if key exists or does not exist.
+        # return reply
+        # basic get method
+        args = GetArgs(key)
+        reply = self.servers[0].call("KVServer.Get", args)
+        return reply.value
 
     # Shared by Put and Append.
     #
@@ -44,8 +48,10 @@ class Clerk:
     # arguments in server.py.
     def put_append(self, key: str, value: str, op: str) -> str:
         # You will have to modify this function.
+        # have to mofidy th eloop later
+        args = PutAppendArgs(key, value)
         for x in range(0, len(self.servers)):
-            reply = self.servers[x].call("KVServer."+op, key)
+            reply = self.servers[x].call("KVServer."+op, args)
             # need to add something to pick either put or append
         return reply
 

@@ -38,20 +38,32 @@ class KVServer:
 
         # Your definitions here.
         # could potentially use a dictionary for key and value pairs
+        self.stored_values = {}
+
 
     def Get(self, args: GetArgs):
-        reply = GetReply(None)
+        reply = GetReply("")
 
         # Your code here.
+
+        # grab value for the key if it exists
+        # otherwise return an empty string
+        with self.mu:
+            value = self.stored_values.get(args.key, "")
+            reply.value = value
+
 
         
 
         return reply
 
     def Put(self, args: PutAppendArgs):
-        reply = PutAppendReply(None)
+        reply = PutAppendReply("")
 
         # Your code here.
+        # set key to th eappropriate value
+        with self.mu:
+            self.stored_values[args.key] = args.value
 
         return reply
 
@@ -59,5 +71,14 @@ class KVServer:
         reply = PutAppendReply(None)
 
         # Your code here.
+
+        # get old value, if key is not inndictionary
+        # concatenate new value
+        with self.mu:
+            old_value = self.stored_values.get(args.key, "")
+
+            # self.stored_values[args.key] += args.value
+            self.stored_values[args.key] = old_value + args.value
+
 
         return reply
