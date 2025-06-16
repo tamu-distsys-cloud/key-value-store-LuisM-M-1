@@ -34,8 +34,13 @@ class Clerk:
         # return reply
         # basic get method
         args = GetArgs(key)
-        reply = self.servers[0].call("KVServer.Get", args)
-        return reply.value
+        try: 
+            reply = self.servers[0].call("KVServer.Get", args)
+            if reply is not None:
+                return reply.value
+        except Exception:
+            pass
+        return ""
 
     # Shared by Put and Append.
     #
@@ -51,9 +56,15 @@ class Clerk:
         # have to mofidy th eloop later
         args = PutAppendArgs(key, value)
         for x in range(0, len(self.servers)):
-            reply = self.servers[x].call("KVServer."+op, args)
-            # need to add something to pick either put or append
-        return reply
+            try:
+                reply = self.servers[x].call("KVServer."+op, args)
+                # need to add something to pick either put or append
+                if reply is not None:
+                    return reply.value if op == "Append" else ""
+                
+            except Exception:
+                continue
+        return ""
 
     def put(self, key: str, value: str):
         self.put_append(key, value, "Put")

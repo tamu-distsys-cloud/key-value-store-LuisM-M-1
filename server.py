@@ -51,10 +51,6 @@ class KVServer:
         with self.mu:
             value = self.stored_values.get(args.key, "")
             reply.value = value
-
-
-        
-
         return reply
 
     def Put(self, args: PutAppendArgs):
