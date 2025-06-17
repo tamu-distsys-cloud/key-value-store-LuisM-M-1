@@ -34,12 +34,15 @@ class Clerk:
         # return reply
         # basic get method
         args = GetArgs(key)
-        try: 
-            reply = self.servers[0].call("KVServer.Get", args)
-            if reply is not None:
-                return reply.value
-        except Exception:
-            pass
+        ## retry loop
+        while True:
+            try: 
+                reply = self.servers[0].call("KVServer.Get", args)
+                if reply is not None:
+                    return reply.value
+            except Exception:
+                # pass
+                continue
         return ""
 
     # Shared by Put and Append.
