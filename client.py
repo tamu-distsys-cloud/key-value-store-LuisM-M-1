@@ -15,6 +15,16 @@ class Clerk:
 
         # Your definitions here.
 
+        #unique client id is used for idendtifying who has sent the request
+        self.client_id = nrand()
+
+        # then counter to labe each request made by this client
+        # prof said to differentiate repeated messages
+        self.request_id= 0
+
+        # lock is also needed for ordering of requestid
+        self.lock = threading.Lock()
+
     # Fetch the current value for a key.
     # Returns "" if the key does not exist.
     # Keeps trying forever in the face of all other errors.
@@ -57,17 +67,23 @@ class Clerk:
     def put_append(self, key: str, value: str, op: str) -> str:
         # You will have to modify this function.
         # have to mofidy th eloop later
+
+        with self.lock:
+            rid = self.request_id
+            self.request_id += 1
+
         args = PutAppendArgs(key, value)
-        for x in range(0, len(self.servers)):
-            try:
-                reply = self.servers[x].call("KVServer."+op, args)
-                # need to add something to pick either put or append
-                if reply is not None:
-                    return reply.value if op == "Append" else ""
-                
-            except Exception:
-                continue
-        return ""
+        while True:
+            for x in range(0, len(self.servers)):
+                try:
+                    reply = self.servers[x].call("KVServer."+op, args)
+                    # need to add something to pick either put or append
+                    if reply is not None:
+                        return reply.value if op == "Append" else ""
+                    
+                except Exception:
+                    continue
+            return ""
 
     def put(self, key: str, value: str):
         self.put_append(key, value, "Put")
