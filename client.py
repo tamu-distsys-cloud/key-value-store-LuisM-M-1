@@ -48,7 +48,6 @@ class Clerk:
             except Exception:
                 continue
 
-
         return ""
 
     # Shared by Put and Append.
@@ -63,9 +62,10 @@ class Clerk:
     def put_append(self, key: str, value: str, op: str) -> str:
         # assigning a unique id
         with self.lock:
+            req_id = self.request_id
             self.request_id +=1
 
-        args = PutAppendArgs(key, value)
+        args = PutAppendArgs(key, value, self.client_id, req_id)
 
         # try all servers until get a response
         while True:
@@ -80,6 +80,7 @@ class Clerk:
                     continue
 
             return ""
+
 
     def put(self, key: str, value: str):
         self.put_append(key, value, "Put")
