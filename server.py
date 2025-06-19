@@ -12,9 +12,12 @@ def debug(format, *args):
 # Put or Append
 class PutAppendArgs:
     # Add definitions here if needed
-    def __init__(self, key, value):
+    def __init__(self, key, value, client_id, request_id):
         self.key = key
         self.value = value
+        # new stuff
+        self.client_id = client_id
+        self.request_id = request_id
 
 class PutAppendReply:
     # Add definitions here if needed 
@@ -37,44 +40,55 @@ class KVServer:
         self.cfg = cfg
 
         # Your definitions here.
-        # could potentially use a dictionary for key and value pairs
         self.stored_values = {}
+        # keep track of the last result for each client request
+        self.handled_requests = {}
 
 
     def Get(self, args: GetArgs):
         reply = GetReply("")
 
-        # Your code here.
-
         # grab value for the key if it exists
         # otherwise return an empty string
-        with self.mu:
+        with self.mu: # using lock for concurrency
             value = self.stored_values.get(args.key, "")
             reply.value = value
         return reply
 
     def Put(self, args: PutAppendArgs):
-        reply = PutAppendReply("")
 
-        # Your code here.
-        # set key to th eappropriate value
+        # return reply
         with self.mu:
+            # identify reqeust using clinet id and request id
+            key = (args.client_id, args.request_id)
+            # if request was processed, return cached response
+            if key in self.handled_requests:
+                return PutAppendReply(self.handled_requests[key])
+
+            # if ne request updat ethe key
             self.stored_values[args.key] = args.value
 
-        return reply
+            # cache the reply to find duplicates
+            self.handled_requests[key] = "" # empty string
+        return PutAppendReply("")
 
     def Append(self, args: PutAppendArgs):
-        # reply = PutAppendReply(None)
 
-        # Your code here.
-
-        # get old value, if key is not inndictionary
-        # concatenate new value
         with self.mu:
+            key = (args.client_id, args.request_id)
+            
+            # if this is a repeated request, return old value (before the append)
+            if key in self.handled_requests:
+                return PutAppendReply(self.handled_requests[key])
+
             old_value = self.stored_values.get(args.key, "")
 
-            # self.stored_values[args.key] += args.value
+            # updating the value to be old+new
+            # self.stored_values[args.key] += old_value
             self.stored_values[args.key] = old_value + args.value
-
-
+            # 
+            self.handled_requests[key] = old_value
         return PutAppendReply(old_value)
+
+
+        # return PutAppendReply(old_value)

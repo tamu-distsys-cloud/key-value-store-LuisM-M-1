@@ -16,7 +16,7 @@ class Clerk:
         # Your definitions here.
 
         #unique client id is used for idendtifying who has sent the request
-        self.client_id = nrand()
+        self.client_id =nrand() # use the nrand that is in this file
 
         # then counter to labe each request made by this client
         # prof said to differentiate repeated messages
@@ -37,22 +37,18 @@ class Clerk:
     # must match the declared types of the RPC handler function's
     # arguments in server.py.
     def get(self, key: str) -> str:
-        # You will have to modify this function.
-        # for x in range(0, len(self.servers)):
-        #     reply = self.servers[x].call("KVServer.Get",key)
-        #     # need to add statements for if key exists or does not exist.
-        # return reply
         # basic get method
         args = GetArgs(key)
-        ## retry loop
+        ## keep tryin until the get works, tkaes into acount unreilable networks
         while True:
             try: 
                 reply = self.servers[0].call("KVServer.Get", args)
                 if reply is not None:
                     return reply.value
             except Exception:
-                # pass
                 continue
+
+
         return ""
 
     # Shared by Put and Append.
@@ -65,14 +61,13 @@ class Clerk:
     # must match the declared types of the RPC handler function's
     # arguments in server.py.
     def put_append(self, key: str, value: str, op: str) -> str:
-        # You will have to modify this function.
-        # have to mofidy th eloop later
-
+        # assigning a unique id
         with self.lock:
-            rid = self.request_id
-            self.request_id += 1
+            self.request_id +=1
 
         args = PutAppendArgs(key, value)
+
+        # try all servers until get a response
         while True:
             for x in range(0, len(self.servers)):
                 try:
@@ -83,6 +78,7 @@ class Clerk:
                     
                 except Exception:
                     continue
+
             return ""
 
     def put(self, key: str, value: str):
