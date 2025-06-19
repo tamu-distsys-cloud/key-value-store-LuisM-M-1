@@ -13,8 +13,6 @@ class Clerk:
         self.servers = servers
         self.cfg = cfg
 
-        # Your definitions here.
-
         #unique client id is used for idendtifying who has sent the request
         self.client_id =nrand() # use the nrand that is in this file
 
@@ -48,7 +46,6 @@ class Clerk:
             except Exception:
                 continue
 
-        return ""
 
     # Shared by Put and Append.
     #
@@ -79,7 +76,6 @@ class Clerk:
                 except Exception:
                     continue
 
-            return ""
 
 
     def put(self, key: str, value: str):

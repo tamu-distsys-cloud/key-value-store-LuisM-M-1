@@ -91,4 +91,3 @@ class KVServer:
         return PutAppendReply(old_value)
 
 
-        # return PutAppendReply(old_value)
