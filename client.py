@@ -23,6 +23,28 @@ class Clerk:
         # lock is also needed for ordering of requestid
         self.lock = threading.Lock()
 
+    def getReplicaServers(self, key:str) -> List[ClientEnd]:
+        # return the servers for this key
+        # follows dynamo style apartitioning
+        nreplicas = getattr(self.cfg, 'nreplicas', 1)
+        try:
+            key_int= int(key) # convert key to integer
+        except ValueError:
+            # set to 0 if key isn't numeric
+            key_int = 0
+
+        # determine
+        nshards = len(self.servers)
+        shard = key_int % nshards
+
+        # return replica group
+        replica_group = []
+        for i in range(0, nreplicas):
+            serverIndex = (shard + i) % nshards
+            replica_group.append(self.servers[serverIndex])
+
+        return replica_group
+
     # Fetch the current value for a key.
     # Returns "" if the key does not exist.
     # Keeps trying forever in the face of all other errors.
@@ -35,16 +57,20 @@ class Clerk:
     # must match the declared types of the RPC handler function's
     # arguments in server.py.
     def get(self, key: str) -> str:
-        # basic get method
+        # more advanced get method:
+
         args = GetArgs(key)
+        replica_group = self.getReplicaServers(key)
         ## keep tryin until the get works, tkaes into acount unreilable networks
         while True:
-            try: 
-                reply = self.servers[0].call("KVServer.Get", args)
-                if reply is not None:
-                    return reply.value
-            except Exception:
-                continue
+            for server in replica_group:
+                # for every server inside replica group try to get a reply
+                try:
+                    reply = server.call("KVServer.Get", args)
+                    if reply is not None:
+                        return reply.value
+                except Exception:
+                    continue
 
 
     # Shared by Put and Append.
@@ -63,16 +89,16 @@ class Clerk:
             self.request_id +=1
 
         args = PutAppendArgs(key, value, self.client_id, req_id)
+        replica_group = self.getReplicaServers(key)
 
         # try all servers until get a response
         while True:
-            for x in range(0, len(self.servers)):
+            for server in replica_group:
+                # again try each server insid ethe replica group
                 try:
-                    reply = self.servers[x].call("KVServer."+op, args)
-                    # need to add something to pick either put or append
+                    reply = server.call("KVServer." + op, args)
                     if reply is not None:
                         return reply.value if op == "Append" else ""
-                    
                 except Exception:
                     continue
 

@@ -39,10 +39,17 @@ class KVServer:
         self.mu = threading.Lock()
         self.cfg = cfg
 
-        # Your definitions here.
+        # might change this dict later for clarity
         self.stored_values = {}
         # keep track of the last result for each client request
         self.handled_requests = {}
+
+    # def primary shard index
+    # convert to an integer
+    #   return 0
+
+    # def get primary
+    # 
 
 
     def Get(self, args: GetArgs):
@@ -84,7 +91,7 @@ class KVServer:
             old_value = self.stored_values.get(args.key, "")
 
             # updating the value to be old+new
-            # self.stored_values[args.key] += old_value
+            
             self.stored_values[args.key] = old_value + args.value
             # 
             self.handled_requests[key] = old_value
