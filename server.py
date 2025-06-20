@@ -109,7 +109,7 @@ class KVServer:
 
         # reject equest if server isn't a replica
         if not self.is_replica(shard):
-            return GetReply(err="This shard is wrong")
+            return GetReply(err="ERR_WRONG_GROUP")
         
         # if replica but not primary
         # forward to leader
@@ -123,13 +123,6 @@ class KVServer:
             return GetReply(value=value)
 
 
-        # grab value for the key if it exists
-        # otherwise return an empty string
-        # with self.mu: # using lock for concurrency
-        #     value = self.stored_values.get(args.key, "")
-        #     reply.value = value
-        # return reply
-
     def Put(self, args: PutAppendArgs):
         # new shard logic
 
@@ -137,7 +130,7 @@ class KVServer:
 
         # reject request if not replica
         if not self.is_replica(shard):
-            return PutAppendReply(err="shrd is wrong")
+            return PutAppendReply(err="ERR_WRONG_GROUP")
 
         # if not the primary
         #forward to the primary
@@ -154,21 +147,6 @@ class KVServer:
             return PutAppendReply()
         
 
-
-        # return reply
-        # with self.mu:
-        #     # identify reqeust using clinet id and request id
-        #     key = (args.client_id, args.request_id)
-        #     # if request was processed, return cached response
-        #     if key in self.handled_requests:
-        #         return PutAppendReply(self.handled_requests[key])
-
-        #     # if ne request updat ethe key
-        #     self.stored_values[args.key] = args.value
-
-        #     # cache the reply to find duplicates
-        #     self.handled_requests[key] = "" # empty string
-        # return PutAppendReply("")
 
     def Append(self, args: PutAppendArgs):
          # # added shard logic for passing 6th test case

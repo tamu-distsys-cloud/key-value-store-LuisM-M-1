@@ -67,7 +67,7 @@ class Clerk:
                 # for every server inside replica group try to get a reply
                 try:
                     reply = server.call("KVServer.Get", args)
-                    if reply is not None:
+                    if reply is not None and getattr(reply, "err", "") != "ERR_WRONG_GROUP":
                         return reply.value
                 except Exception:
                     continue
@@ -97,7 +97,7 @@ class Clerk:
                 # again try each server insid ethe replica group
                 try:
                     reply = server.call("KVServer." + op, args)
-                    if reply is not None:
+                    if reply is not None and getattr(reply, "err", "") != "ERR_WRONG_GROUP":
                         return reply.value if op == "Append" else ""
                 except Exception:
                     continue
