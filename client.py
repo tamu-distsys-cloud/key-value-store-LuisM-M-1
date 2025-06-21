@@ -13,20 +13,23 @@ class Clerk:
         self.servers = servers
         self.cfg = cfg
 
-        #unique client id is used for idendtifying who has sent the request
+        # unique client id is generated
         self.client_id =nrand() # use the nrand that is in this file
 
         # then counter to labe each request made by this client
         # prof said to differentiate repeated messages
         self.request_id= 0
 
-        # lock is also needed for ordering of requestid
+        # need the lock in case of concurrent client threads
         self.lock = threading.Lock()
 
+
+    # added Definiton for Task : Static Sharding and Replication ---------------------
     def getReplicaServers(self, key:str) -> List[ClientEnd]:
-        # return the servers for this key
-        # follows dynamo style apartitioning
-        nreplicas = getattr(self.cfg, 'nreplicas', 1)
+        # prof mentioned we should use static partitioning
+        # this implementation follows amazon dynamo
+        # static paritioning: int(key) % n-shards
+        nreplicas = getattr(self.cfg,'nreplicas', 1)
         try:
             key_int= int(key) # convert key to integer
         except ValueError:
@@ -35,53 +38,51 @@ class Clerk:
 
         # determine
         nshards = len(self.servers)
-        shard = key_int % nshards
+        shard = key_int%nshards
 
         # return replica group
-        replica_group = []
+        replicaGroup = []
         for i in range(0, nreplicas):
-            serverIndex = (shard + i) % nshards
-            replica_group.append(self.servers[serverIndex])
 
-        return replica_group
+            serverIndex = (shard +i) % nshards
+            replicaGroup.append(self.servers[ serverIndex ])
 
-    # Fetch the current value for a key.
-    # Returns "" if the key does not exist.
-    # Keeps trying forever in the face of all other errors.
-    #
-    # You can send an RPC with code like this:
-    # reply = self.server[i].call("KVServer.Get", args)
-    # assuming that you are connecting to the i-th server.
-    #
-    # The types of args and reply (including whether they are pointers)
-    # must match the declared types of the RPC handler function's
-    # arguments in server.py.
+        return replicaGroup
+
+
+    # BASE CODE ----------------------------------------------------------------------
+    
     def get(self, key: str) -> str:
-        # more advanced get method:
+        # Fetch the current value for a key.
+        # Returns "" if the key does not exist.
+        # Keeps trying forever in the face of all other errors.
+        
 
         args = GetArgs(key)
-        replica_group = self.getReplicaServers(key)
-        ## keep tryin until the get works, tkaes into acount unreilable networks
+        replicaGroup = self.getReplicaServers(key)
+        ## This retry loop keeps trying until a server works 
+        # essentially handles unreliable networks
         while True:
-            for server in replica_group:
+            for server in replicaGroup:
                 # for every server inside replica group try to get a reply
                 try:
                     reply = server.call("KVServer.Get", args)
-                    if reply is not None and getattr(reply, "err", "") != "ERR_WRONG_GROUP":
-                        return reply.value
+
+                    # only accept valid responses
+                    if reply is None:
+                        continue
+
+                    if getattr(reply, "err", "") == "WRONG_SHARD":
+                        continue
+
+                    # if no error then
+                    # return the value
+                    return reply.value
                 except Exception:
                     continue
 
 
     # Shared by Put and Append.
-    #
-    # You can send an RPC with code like this:
-    # reply = self.servers[i].call("KVServer."+op, args)
-    # assuming that you are connecting to the i-th server.
-    #
-    # The types of args and reply (including whether they are pointers)
-    # must match the declared types of the RPC handler function's
-    # arguments in server.py.
     def put_append(self, key: str, value: str, op: str) -> str:
         # assigning a unique id
         with self.lock:
@@ -89,16 +90,29 @@ class Clerk:
             self.request_id +=1
 
         args = PutAppendArgs(key, value, self.client_id, req_id)
-        replica_group = self.getReplicaServers(key)
+        replicaGroup = self.getReplicaServers(key)
 
         # try all servers until get a response
         while True:
-            for server in replica_group:
+            for server in replicaGroup:
                 # again try each server insid ethe replica group
                 try:
+                    # similar logic to the modified get
                     reply = server.call("KVServer." + op, args)
-                    if reply is not None and getattr(reply, "err", "") != "ERR_WRONG_GROUP":
-                        return reply.value if op == "Append" else ""
+                    # skip if reply is missing or 
+                    # if server is not the right shard
+                    if reply is None:
+                        continue
+
+                    if getattr(reply, "err","") == "WRONG_SHARD":
+                        continue
+
+                    # return actual val
+                    if op == "Append":
+
+                        return reply.value
+                    else:
+                        return ""
                 except Exception:
                     continue
 
